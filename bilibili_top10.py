@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import time
 
 POPULAR_URL = "https://api.bilibili.com/x/web-interface/popular"
 VIDEO_INFO_URL = "https://api.bilibili.com/x/web-interface/view"
@@ -12,20 +13,22 @@ HEADERS = {
 
 
 def get_video_tags(aid: int) -> list[str]:
-    """获取单个视频的标签列表"""
-    resp = requests.get(
-        f"{VIDEO_INFO_URL}?aid={aid}",
-        headers=HEADERS,
-        timeout=10,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    if data["code"] != 0:
+    try:
+        resp = requests.get(
+            f"{VIDEO_INFO_URL}?aid={aid}",
+            headers=HEADERS,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data["code"] != 0:
+            return []
+        tags = data.get("data", {}).get("tags", [])
+        if isinstance(tags, list) and tags and isinstance(tags[0], dict):
+            return [t["tag_name"] for t in tags]
+        return tags
+    except Exception:
         return []
-    tags = data.get("data", {}).get("tags", [])
-    if isinstance(tags, list) and tags and isinstance(tags[0], dict):
-        return [t["tag_name"] for t in tags]
-    return tags
 
 
 def format_count(num: int) -> str:
@@ -64,6 +67,7 @@ def main():
         category = item.get("tname", "未知")
 
         tags = get_video_tags(aid)
+        time.sleep(0.5)
 
         print(f"{'='*60}")
         print(f"  No.{i}  {title}")
