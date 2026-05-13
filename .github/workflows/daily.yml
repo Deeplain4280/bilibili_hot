@@ -1,0 +1,35 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Daily Bilibili Top 10
+on:
+  schedule:
+    - cron: '0 2 * * *'     # UTC 2:00 = 北京时间 10:00
+  workflow_dispatch:          # 允许手动触发测试
+permissions:
+  contents: write             # 允许 push 提交
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 仓库
+        uses: actions/checkout@v4
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安装依赖
+        run: pip install requests
+      - name: 抓取热门视频
+        run: python bilibili_top10.py
+      - name: 提交更新
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bilibili_top10.json
+          if git diff --staged --quiet; then
+            echo "JSON 无变化，跳过提交"
+          else
+            git commit -m "[auto] 更新每日热门 Top10 $(date +'%Y-%m-%d')"
+            git push
+          fi
